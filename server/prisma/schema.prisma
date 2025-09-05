@@ -1,0 +1,315 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Person{
+  personId String @id @default(uuid()) @map("person_id")
+  personCode String @unique @map("person_code")
+  firstName String @map("first_name")
+  lastName String @map("last_name")
+  nicNumber String @unique @map("nic_number")
+  email String?
+  phone String?
+  address String?
+  gender String?
+  dob DateTime?
+  roleId String? @map("role_id")
+  isDeleted String @default("N") @map("is_deleted")
+  createdAt DateTime? @default(now()) @map("created_at")
+  updatedAt DateTime? @map("updated_at")
+  account Account?
+  role Role? @relation(fields: [roleId], references: [roleId])
+
+  attendance Attendance[]
+  salaries          Salary[]
+  otPayments        OTPayment[]
+  medicalRecords    MedicalEmergency[]
+  createdTasks      Task[] @relation("CreatedTasks")
+  supervisedTasks   Task[] @relation("SupervisedTasks")
+  workerTasks       Task[] @relation("WorkerTasks")
+  teamMemberships   TeamMember[]
+  teaPlucking       TeaPlucking[]
+  vehicleUsages     VehicleUsage[]
+  reportedIncidents Incident[]   @relation("ReportedBy")
+
+  @@map("person")
+}
+
+model Role {
+  roleId          String @id @default(uuid()) @map("role_id")
+  userRole    String     @unique @map("user_role")
+  description String?
+  
+  isDeleted String @default("N") @map("is_deleted")
+  createdAt DateTime? @default(now()) @map("created_at")
+  updatedAt DateTime? @map("updated_at")
+  persons    Person[]
+  @@map("role")
+}
+
+model Account{
+  accountId String @id @default(uuid()) @map("account_id")
+  personId String @unique @map("person_id")
+  username String @unique
+  password String
+  lastLogin  DateTime @default(now()) @map("last_login")
+  isDeleted String @default("N") @map("is_deleted")
+  createdAt DateTime? @default(now()) @map("created_at")
+  updatedAt DateTime? @map("updated_at")
+  
+  user Person @relation(fields: [personId],references: [personId])
+  @@map("account")
+}
+
+model Attendance {
+  attendanceId String   @id @default(uuid()) @map("attendance_id")
+  startDttm      DateTime? @map("start_dttm")
+  endDttm    DateTime? @map("end_dttm")
+  status    String?
+  workHours   Decimal @map("work_hours")
+  personId String     @map("person_id")
+  personCode String?  @map("person_code")
+  currentDate DateTime @map("current_date")
+  isDeleted String @default("N") @map("is_deleted")
+  createdAt DateTime? @default(now()) @map("created_at")
+  updatedAt DateTime? @map("updated_at")
+  
+  person    Person   @relation(fields: [personId], references: [personId])
+  @@map("attendance")
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LEAVE
+  HALFDAY
+}
+
+model Salary {
+  salaryId       String   @id @default(uuid()) @map("salary_id")
+  month          DateTime
+  basicSalary    Float? @map("basic_salary")
+  otPayment      Float? @map("ot_payment")
+  totalSalary    Float? @map("total_salary")
+  personId       String
+  isDeleted String @default("N") @map("is_deleted")
+  createdAt DateTime? @default(now()) @map("created_at")
+  updatedAt DateTime? @map("updated_at")
+  
+  person         Person   @relation(fields: [personId], references: [personId])
+  @@map("salary")
+}
+
+model OTPayment {
+  otId         String   @id @default(uuid()) @map("ot_id")
+  personId     String @map("person_id")
+  date         DateTime
+  hours        Float
+  ratePerHour Float @map("rate_per_hour")
+  totalPayment Float @map("total_payment")
+  isDeleted String @default("N") @map("is_deleted")
+  createdAt DateTime? @default(now()) @map("created_at")
+  updatedAt DateTime? @map("updated_at")
+  
+  person        Person   @relation(fields: [personId], references: [personId])
+  @@map("ot_payment")
+}
+
+model MedicalEmergency {
+  meId          String   @id @default(uuid()) @map("me_id")
+  personId      String @map("person_id")
+  date          DateTime
+  description   String?
+  medicalLeave Boolean @map("medical_leave")
+  isDeleted String @default("N") @map("is_deleted")
+  createdAt DateTime? @default(now()) @map("created_at")
+  updatedAt DateTime? @map("updated_at")
+  
+  person        Person   @relation(fields: [personId], references: [personId])
+  @@map("medical_emergency")
+}
+
+model Task {
+  taskId        String   @id @default(uuid()) @map("task_id")
+  taskCode      Int @unique @default(autoincrement()) @map("task_code")
+  taskName      String   @map("task_name")
+  description   String
+  taskType      String   @map("task_type")
+  taskStatus    TaskStatus @default(PENDING) @map("task_status")
+  startDateTime DateTime @map("start_date_time")
+  endDateTime   DateTime? @map("end_date_time")
+  additionalNotes String? @map("additional_notes")
+  
+
+  createdBy             String @map("created_by")
+  assignedSupervisor    String @map("assigned_supervisor")
+  teamId                String? @map("team_id")
+  workerId              String? @map("worker_id")
+  placeId               String @map("place_id")
+  isDeleted String @default("N") @map("is_deleted")
+
+  createdAt DateTime? @default(now()) @map("created_at")
+  updatedAt DateTime? @map("updated_at")
+
+  creator         Person @relation("CreatedTasks", fields: [createdBy], references: [personId])
+  supervisor      Person @relation("SupervisedTasks", fields: [assignedSupervisor], references: [personId])
+  worker          Person? @relation("WorkerTasks", fields: [workerId], references: [personId])
+  assignedTeam    Team?   @relation(fields: [teamId], references: [teamId])
+  taskPlace       Place @relation(fields: [placeId], references: [placeId])
+  @@map("task")
+}
+enum TaskStatus {
+  ASSIGNED
+  PENDING
+  IN_PROCESS
+  COMPLETED
+  CANCELLED
+}
+
+model Place {
+  placeId String @id @default(uuid()) @map("place_id")
+  placeCode String @unique @map("place_code")
+  description String?
+  size Decimal?
+  isDeleted String @default("N") @map("is_deleted")
+  createdAt DateTime? @default(now()) @map("created_at")
+  updatedAt DateTime? @map("updated_at")
+
+  task Task[]
+  @@map("place")
+}
+
+model Team {
+  teamId        String   @id @default(uuid()) @map("team_id")
+  name          String   @unique
+  description   String
+  isDeleted String @default("N") @map("is_deleted")
+  createdAt DateTime? @default(now()) @map("created_at")
+  updatedAt DateTime? @map("updated_at")
+
+  tasks         Task[]
+  members       TeamMember[]
+  @@map("team")
+}
+
+model TeamMember {
+  teamId     String @map("team_id")
+  personId   String @map("person_id")
+  joinedDate DateTime @map("joined_date")
+  isDeleted String @default("N") @map("is_deleted")
+  createdAt DateTime? @default(now()) @map("created_at")
+  updatedAt DateTime? @map("updated_at")
+
+  team        Team     @relation(fields: [teamId], references: [teamId])
+  person      Person   @relation(fields: [personId], references: [personId])
+
+  @@id([teamId, personId])
+  @@map("team_member")
+}
+
+model TeaPlucking {
+  tpId          String   @id @default(uuid()) @map("tp_id")
+  personId     String
+  date          DateTime
+  weightKg     Float   @map("weight_kg")
+  ratePerKg   Float   @map("rate_per_kg")
+  totalPayment Float   @map("total_payment")
+  isDeleted String @default("N") @map("is_deleted")
+  createdAt DateTime? @default(now()) @map("created_at")
+  updatedAt DateTime? @map("updated_at")
+  person        Person   @relation(fields: [personId], references: [personId])
+  @@map("tea_plucking")
+}
+
+model Vehicle {
+  vehicleId    String   @id @default(uuid()) @map("vehicle_id")
+  vehicleType  String   @map("vehicle_type")
+  plateNumber  String   @unique @map("plate_number")
+  status       String   @default("available")
+  imageUrl     String   @map("image_url")
+  isDeleted String @default("N") @map("is_deleted")
+  createdAt DateTime? @default(now()) @map("created_at")
+  updatedAt DateTime? @map("updated_at")
+
+  usages       VehicleUsage[]
+  @@map("vehicle")
+}
+
+model VehicleUsage {
+  usage_id    String   @id @default(uuid())
+  date        DateTime
+  description String
+
+  vehicleId  String @map("vehilce_id")
+  driverId   String @map("driver_id")
+  isDeleted String @default("N") @map("is_deleted")
+  createdAt DateTime? @default(now()) @map("created_at")
+  updatedAt DateTime? @map("updated_at")
+
+  vehicle     Vehicle  @relation(fields: [vehicleId], references: [vehicleId])
+  driver      Person   @relation(fields: [driverId], references: [personId])
+  @@map("vehicle_usage")
+}
+
+model Stock {
+  itemId    String   @id @default(uuid()) @map("item_id")
+  name      String
+  category  String
+  unit      String
+  unitPrice Float @map("unit_price")
+  quantity  Float
+  isDeleted String @default("N") @map("is_deleted")
+  createdAt DateTime? @default(now()) @map("created_at")
+  updatedAt DateTime? @map("updated_at")
+
+  transactions stockTransaction[]
+  @@map("stock")
+}
+
+model stockTransaction {
+  transactionId String   @id @default(uuid()) @map("transaction_id")
+  itemId        String  @map("item_id")
+  taskId        String? @map("task_id")
+  date           DateTime 
+  type           String
+  quantity       Float
+  reference      String?
+  isDeleted String @default("N") @map("is_deleted")
+  createdAt DateTime? @default(now()) @map("created_at")
+  updatedAt DateTime? @map("updated_at")
+
+  item           Stock @relation(fields: [itemId], references: [itemId])
+  @@map("stock_transaction")
+}
+
+model Production {
+  production_id String   @id @default(uuid())
+  date          DateTime
+  product_name  String
+  quantity      Float
+  notes         String?
+  isDeleted String @default("N") @map("is_deleted")
+  createdAt DateTime? @default(now()) @map("created_at")
+  updatedAt DateTime? @map("updated_at")
+  @@map("production")
+}
+
+model Incident {
+  incident_id  String   @id @default(uuid())
+  date         DateTime
+  type         String
+  description  String
+  resolved     Boolean
+  reported_by  String
+  isDeleted String @default("N") @map("is_deleted")
+  createdAt DateTime? @default(now()) @map("created_at")
+  updatedAt DateTime? @map("updated_at")
+
+  reporter     Person   @relation("ReportedBy", fields: [reported_by], references: [personId])
+  @@map("incident")
+}
