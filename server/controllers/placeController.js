@@ -51,4 +51,22 @@ const deletePlace = async(req,res)=>{
     }
 }
 
-export {addPlace,getAllPlaces,deletePlace}
+const updatePlaceDetails = async(req,res)=>{
+    const {id} = req.params;
+    const {placeCode,description,size} = req.body;
+    try {
+        const updatedPlace = await prisma.place.update({
+            where:{placeId:id},
+            data:{placeCode:placeCode,description:description,size:size}
+        })
+        if(updatedPlace){
+            return res.status(200).json({success:true,message:"Place Updated Successfully!",data:updatedPlace});
+        }else{
+            return res.status(400).json({success:false,message:`Failed updating place!`})
+        }
+    } catch (error) {
+        return res.status(500).json({success:false,message:`Failed updating place!, ${error.message}`})
+    }
+}
+
+export {addPlace,getAllPlaces,deletePlace,updatePlaceDetails}

@@ -13,6 +13,7 @@ import teaPluckingRouter from './routes/teaPluckingRoute.js'
 import summaryRouter from './routes/summaryRoute.js'
 import taskRouter from './routes/taskRoute.js'
 import reportRouter from './routes/reportRoute.js'
+import accountRouter from './routes/accountRoute.js'
 
 const app = express()
 
@@ -38,5 +39,6 @@ app.use('/api/teaPlucking',teaPluckingRouter);
 app.use('/api/summary',summaryRouter);
 app.use('/api/tasks',taskRouter);
 app.use('/api/reports',reportRouter);
+app.use('/api/account',accountRouter)
 
 export default app;

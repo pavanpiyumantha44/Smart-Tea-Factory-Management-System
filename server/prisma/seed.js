@@ -124,6 +124,26 @@ async function seed(){
     //         }
     //     ]
     // })
+    const definedSalaries = await prisma.definedSalaries.createMany({
+        data:[
+            {
+                roleId:"7d8feca0-6e66-46d2-8096-a81d4fb52937",
+                basicSalary:50000,
+            },
+            {
+                roleId:"a8b7e33c-d941-4103-9f41-043953ff10b6",
+                basicSalary:30000,
+            },
+            {
+                roleId:"d0f7791d-5eef-4fde-9351-bb248767cfd7",
+                basicSalary:20000,
+            },
+            {
+                roleId:"f289ac80-c8b9-4ee8-9a25-a556c2d0448e",
+                basicSalary:15000,
+            }
+        ]
+    })
     
 }
 

@@ -125,7 +125,6 @@ model OTPayment {
 model DefinedSalaries{
   id String   @id @default(uuid()) @map("id")
   roleId String @map("role_id")
-  salary Float
   basicSalary Float @map("basic_salary")
   isDeleted String @default("N") @map("is_deleted")
   createdAt DateTime? @default(now()) @map("created_at")
