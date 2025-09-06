@@ -8,7 +8,7 @@ function extractJson(text) {
     .replace(/^```json\s*/, '')
     .replace(/```$/, '')
     .trim();
-  return JSON.parse(cleaned); // or JSON5.parse(cleaned)
+  return JSON.parse(cleaned);
 }
 
 const getTextOutput = async(req,res)=>{
@@ -32,7 +32,7 @@ const getTextOutput = async(req,res)=>{
         ]),
       ],
       generationConfig: {
-            responseMimeType: "application/json", // Crucial for JSON output!
+            responseMimeType: "application/json",
       },
       config: {
             systemInstruction: `

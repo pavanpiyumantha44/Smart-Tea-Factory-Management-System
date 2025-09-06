@@ -2,7 +2,7 @@ import prisma from "../lib/prisma.js";
 
 export const addInitialData = async (req, res) => {
   try {
-    // The frontend should send attendanceData array in body
+
     const attendanceData = req.body;
 
     if (!attendanceData || !Array.isArray(attendanceData) || attendanceData.length === 0) {
@@ -34,7 +34,7 @@ export const addInitialData = async (req, res) => {
 
     console.log(formattedData);
 
-    //Insert all records at once
+
     const result = await prisma.attendance.createMany({
       data: formattedData,
       skipDuplicates: true
@@ -55,7 +55,6 @@ export const addInitialData = async (req, res) => {
     });
   }
 };
-
 
 export const getAllAttendance = async(req,res)=>{
     try {

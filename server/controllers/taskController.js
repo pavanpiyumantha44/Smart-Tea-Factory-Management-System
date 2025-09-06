@@ -1,4 +1,5 @@
 import prisma from '../lib/prisma.js';
+import { sendMail } from '../services/sendMails.js';
 
 export const createTask = async (req, res) => {
   try {
@@ -120,10 +121,17 @@ export const updateTaskStatus = async(req,res)=>{
     const taskStatus = req.body.data;
     const updatedStatus = await prisma.task.update({
       where:{taskId:id},
-      data:{taskStatus:taskStatus,updatedAt:new Date()}
+      data:{taskStatus:taskStatus,updatedAt:new Date()},
+      include:{
+        creator:true,
+        supervisor:true
+      }
     })
     if(updatedStatus){
-       return res.status(200).json({success: true,message: "Tasks status updated successfuly",data: updatedStatus});
+      if (taskStatus.toLowerCase() === "completed") {
+        const mailResult = await notifyCreator(updatedStatus);
+      }
+      return res.status(200).json({success: true,message: "Tasks status updated successfuly",data: updatedStatus});
     }else{
       return res.status(404).json({
         success: false,
@@ -136,6 +144,48 @@ export const updateTaskStatus = async(req,res)=>{
       message: `Failed to update task status! ${error.message}`
     });
   }
+}
+
+const notifyCreator = async(taskData)=>{
+  const receiver = taskData.creator.email;
+  const subject = `Task ${taskData.taskCode} - ${taskData.taskName} is ${taskData.taskStatus.toLowerCase()}`;
+  const text="";
+  const htmlTemplate =`<!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Task Completed</title>
+    </head>
+    <body style="font-family: Arial, sans-serif; background-color:#f5f5f5; padding:20px;">
+      <div style="max-width:600px; margin:0 auto; background-color:#ffffff; padding:20px; border-radius:8px; box-shadow:0 0 10px rgba(0,0,0,0.1);">
+        
+        <h1 style="text-align:center;">
+          <span style="color:lightGreen;">Ceylon-Tea</span>
+          <span style="color:lightGreen;">System</span>
+        </h1>
+
+        <h3>Hello ${taskData.creator.firstName},</h3>
+
+        <p style="font-size:16px;">We are happy to inform you that your task has been <span style="color:green; font-weight:bold;">completed successfully</span>!</p>
+
+        <ul style="font-size:14px; padding-left:20px;">
+          <li><span style="font-weight:bold;">Task Name:</span> ${taskData.taskName}</li>
+          <li><span style="font-weight:bold;">Supervisor:</span> ${taskData.supervisor.personCode}-${taskData.supervisor.firstName}</li>
+          <li><span style="font-weight:bold;">Assigned Date:</span> ${new Date(taskData.startDateTime).toLocaleString()}</li>
+          <li><span style="font-weight:bold;">Description:</span> ${taskData.description}</li>
+        </ul>
+
+        <p style="font-size:16px;">Please review the task details and confirm if everything is as expected.</p>
+
+        <br>
+        <p style="font-size:16px; text-align:center;">~ Thank You ~</p>
+
+      </div>
+    </body>
+    </html>
+    `;
+  await sendMail({ to: receiver, subject, text, html: htmlTemplate });
 }
 
 export const getTask = async(req,res)=>{

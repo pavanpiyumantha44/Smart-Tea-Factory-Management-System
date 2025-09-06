@@ -28,7 +28,6 @@ model Person{
   attendance Attendance[]
   salaries          Salary[]
   otPayments        OTPayment[]
-  medicalRecords    MedicalEmergency[]
   createdTasks      Task[] @relation("CreatedTasks")
   supervisedTasks   Task[] @relation("SupervisedTasks")
   workerTasks       Task[] @relation("WorkerTasks")
@@ -49,6 +48,7 @@ model Role {
   createdAt DateTime? @default(now()) @map("created_at")
   updatedAt DateTime? @map("updated_at")
   persons    Person[]
+  salaries     DefinedSalaries[] 
   @@map("role")
 }
 
@@ -75,6 +75,7 @@ model Attendance {
   personId String     @map("person_id")
   personCode String?  @map("person_code")
   currentDate DateTime @map("current_date")
+  marked_by String? @map("marked_by")
   isDeleted String @default("N") @map("is_deleted")
   createdAt DateTime? @default(now()) @map("created_at")
   updatedAt DateTime? @map("updated_at")
@@ -97,6 +98,7 @@ model Salary {
   otPayment      Float? @map("ot_payment")
   totalSalary    Float? @map("total_salary")
   personId       String
+  approvedBy     String?  @map("approved_by")
   isDeleted String @default("N") @map("is_deleted")
   createdAt DateTime? @default(now()) @map("created_at")
   updatedAt DateTime? @map("updated_at")
@@ -120,18 +122,16 @@ model OTPayment {
   @@map("ot_payment")
 }
 
-model MedicalEmergency {
-  meId          String   @id @default(uuid()) @map("me_id")
-  personId      String @map("person_id")
-  date          DateTime
-  description   String?
-  medicalLeave Boolean @map("medical_leave")
+model DefinedSalaries{
+  id String   @id @default(uuid()) @map("id")
+  roleId String @map("role_id")
+  salary Float
+  basicSalary Float @map("basic_salary")
   isDeleted String @default("N") @map("is_deleted")
   createdAt DateTime? @default(now()) @map("created_at")
   updatedAt DateTime? @map("updated_at")
-  
-  person        Person   @relation(fields: [personId], references: [personId])
-  @@map("medical_emergency")
+  roleSalary  Role @relation(fields: [roleId], references: [roleId])
+  @@map("defined_salaries")
 }
 
 model Task {
@@ -287,18 +287,6 @@ model stockTransaction {
   @@map("stock_transaction")
 }
 
-model Production {
-  production_id String   @id @default(uuid())
-  date          DateTime
-  product_name  String
-  quantity      Float
-  notes         String?
-  isDeleted String @default("N") @map("is_deleted")
-  createdAt DateTime? @default(now()) @map("created_at")
-  updatedAt DateTime? @map("updated_at")
-  @@map("production")
-}
-
 model Incident {
   incident_id  String   @id @default(uuid())
   date         DateTime
@@ -312,4 +300,15 @@ model Incident {
 
   reporter     Person   @relation("ReportedBy", fields: [reported_by], references: [personId])
   @@map("incident")
+}
+
+model Solutions{
+  solId String @id @default(uuid())
+  date DateTime
+  disease String?
+  Solution String?
+  Response String?
+  isDeleted String @default("N") @map("is_deleted")
+  createdAt DateTime? @default(now()) @map("created_at")
+  updatedAt DateTime? @map("updated_at")
 }

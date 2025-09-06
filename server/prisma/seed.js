@@ -50,7 +50,7 @@ async function seed(){
     //         }
     //     ]
     // })
-    const hashPassword = await bcrypt.hash("man@123",10);
+    const hashPassword = await bcrypt.hash("sup@123",10);
 
     // const account = await prisma.account.create({
     //     data:{
@@ -63,6 +63,13 @@ async function seed(){
     //     data:{
     //         personId:"d1daf799-7d5c-416e-95ea-7c2c4f467059",
     //         username:"mang",
+    //         password:hashPassword,
+    //     }
+    // })
+    //  const account = await prisma.account.create({
+    //     data:{
+    //         personId:"a71b34b2-7123-4829-a8e3-1b8809fd3fde",
+    //         username:"supv",
     //         password:hashPassword,
     //     }
     // })

@@ -12,6 +12,7 @@ import attendanceRouter from './routes/attendanceRoute.js'
 import teaPluckingRouter from './routes/teaPluckingRoute.js'
 import summaryRouter from './routes/summaryRoute.js'
 import taskRouter from './routes/taskRoute.js'
+import reportRouter from './routes/reportRoute.js'
 
 const app = express()
 
@@ -36,6 +37,6 @@ app.use('/api/attendance',attendanceRouter);
 app.use('/api/teaPlucking',teaPluckingRouter);
 app.use('/api/summary',summaryRouter);
 app.use('/api/tasks',taskRouter);
-
+app.use('/api/reports',reportRouter);
 
 export default app;
