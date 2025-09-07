@@ -14,6 +14,10 @@ import summaryRouter from './routes/summaryRoute.js'
 import taskRouter from './routes/taskRoute.js'
 import reportRouter from './routes/reportRoute.js'
 import accountRouter from './routes/accountRoute.js'
+import payrollRouter from './routes/payrollRoute.js'
+import setupObservers from './services/observerManager.js';
+import startWeatherJob from './jobs/weatherJob.js';
+
 
 const app = express()
 
@@ -24,6 +28,9 @@ app.use(cors({
   credentials: true,
   methods:['POST','GET','PUT','DELETE']
 }));
+
+const weatherService = setupObservers();
+startWeatherJob(weatherService);
 
 app.use(express.json())
 
@@ -40,5 +47,6 @@ app.use('/api/summary',summaryRouter);
 app.use('/api/tasks',taskRouter);
 app.use('/api/reports',reportRouter);
 app.use('/api/account',accountRouter)
+app.use('/api/payroll',payrollRouter);
 
 export default app;

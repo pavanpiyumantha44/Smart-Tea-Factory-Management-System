@@ -98,6 +98,7 @@ model Salary {
   otPayment      Float? @map("ot_payment")
   totalSalary    Float? @map("total_salary")
   personId       String
+  status         String?
   approvedBy     String?  @map("approved_by")
   isDeleted String @default("N") @map("is_deleted")
   createdAt DateTime? @default(now()) @map("created_at")
@@ -165,6 +166,7 @@ model Task {
 enum TaskStatus {
   ASSIGNED
   PENDING
+  HOLD
   IN_PROCESS
   COMPLETED
   CANCELLED
