@@ -15,67 +15,16 @@ import {
   ChevronRight,
   Loader2,
   Clock,
-  Calculator
+  Calculator,
+  Loader,
+  CheckLine
 } from "lucide-react";
+import { addSalary, getOtherWorkersSalary, getTeaPluckersSalary } from "../../services/payrollService";
+import { useDispatch, useSelector } from "react-redux";
+import { ToastContainer, toast } from 'react-toastify';
 
 const Payroll = () => {
-  const [salaryRecords, setSalaryRecords] = useState([
-    {
-      salaryId: "1",
-      month: "2025-09-01T10:30:00.000Z",
-      basicSalary: 45000,
-      otPayment: 12000,
-      totalSalary: 57000,
-      personId: "EMP001",
-      person: { name: "Samantha Perera", position: "Tea Picker", department: "Production" },
-      createdAt: "2025-09-01T10:30:00.000Z",
-      updatedAt: "2025-09-01T10:30:00.000Z"
-    },
-    {
-      salaryId: "2",
-      month: "2025-09-01T10:30:00.000Z",
-      basicSalary: 65000,
-      otPayment: 8000,
-      totalSalary: 73000,
-      personId: "EMP002",
-      person: { name: "Kamal Silva", position: "Factory Supervisor", department: "Production" },
-      createdAt: "2025-09-01T10:30:00.000Z",
-      updatedAt: "2025-09-01T10:30:00.000Z"
-    },
-    {
-      salaryId: "3",
-      month: "2025-09-01T10:30:00.000Z",
-      basicSalary: 38000,
-      otPayment: 15000,
-      totalSalary: 53000,
-      personId: "EMP003",
-      person: { name: "Nimal Fernando", position: "Machine Operator", department: "Processing" },
-      createdAt: "2025-09-01T10:30:00.000Z",
-      updatedAt: "2025-09-01T10:30:00.000Z"
-    },
-    {
-      salaryId: "4",
-      month: "2025-09-01T10:30:00.000Z",
-      basicSalary: 85000,
-      otPayment: 5000,
-      totalSalary: 90000,
-      personId: "EMP004",
-      person: { name: "Priya Rajapaksa", position: "Quality Manager", department: "Quality Control" },
-      createdAt: "2025-09-01T10:30:00.000Z",
-      updatedAt: "2025-09-01T10:30:00.000Z"
-    },
-    {
-      salaryId: "5",
-      month: "2025-09-01T10:30:00.000Z",
-      basicSalary: 42000,
-      otPayment: 9000,
-      totalSalary: 51000,
-      personId: "EMP005",
-      person: { name: "Ravi Wickramasinghe", position: "Maintenance Tech", department: "Maintenance" },
-      createdAt: "2025-09-01T10:30:00.000Z",
-      updatedAt: "2025-09-01T10:30:00.000Z"
-    }
-  ]);
+  const [salaryRecords, setSalaryRecords] = useState([]);
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -86,8 +35,13 @@ const Payroll = () => {
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [isMobile, setIsMobile] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [teaPluckersSalary,setTeaPluckersSalary] = useState([]);
+  const [otherWorkersSalary,setOtherWorkersSalary] = useState([]);
+  const {user} = useSelector((state)=>state.auth);
+  const dispatch = useDispatch();
+  const currntUser = user?.personId;
 
-  // Check for mobile screen
+
   useEffect(() => {
     const checkScreenSize = () => {
       setIsMobile(window.innerWidth < 768);
@@ -99,13 +53,13 @@ const Payroll = () => {
     return () => window.removeEventListener('resize', checkScreenSize);
   }, []);
 
-  // Format month for display
+
   const formatMonth = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
   };
 
-  // Format time ago
+
   const formatTimeAgo = (date) => {
     if (!date) return "Never";
     const now = new Date();
@@ -119,7 +73,7 @@ const Payroll = () => {
     return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
   };
 
-  // Filter salary records
+
   const filteredRecords = salaryRecords.filter(record => {
     const matchesSearch = record.person.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          record.personId.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -129,18 +83,18 @@ const Payroll = () => {
     return matchesSearch && matchesDepartment && matchesMonth;
   });
 
-  // Pagination logic
+
   const totalPages = Math.ceil(filteredRecords.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const currentRecords = filteredRecords.slice(startIndex, endIndex);
 
-  // Reset to first page when filters change
+
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm, departmentFilter, monthFilter, itemsPerPage]);
 
-  // Calculate stats
+
   const totalEmployees = [...new Set(salaryRecords.map(r => r.personId))].length;
   const totalPayroll = salaryRecords.reduce((sum, record) => sum + (record.totalSalary || 0), 0);
   const totalOTPayments = salaryRecords.reduce((sum, record) => sum + (record.otPayment || 0), 0);
@@ -148,7 +102,52 @@ const Payroll = () => {
   const months = [...new Set(salaryRecords.map(r => formatMonth(r.month)))];
   const avgSalary = totalEmployees > 0 ? totalPayroll / totalEmployees : 0;
 
-  // Add Salary Modal Component
+  const handleGenerateSalary = async(req,res)=>{
+
+    const teaPluckersData = teaPluckersSalary.map((item, index) => ({
+      salaryId: `TPL-${index + 1}`,
+      month: item.month || new Date().toISOString(),
+      basicSalary: item.totalPayment || 0,
+      otPayment: item.otPayment || 0,
+      totalSalary: item.totalPayment,
+      personId: item.personId || "-",
+      personCode: item.personCode || "-",
+      person: {
+        name: item.name,
+        position: item.person?.role?.userRole || "Tea Plucker",
+        department: item.person?.teamMemberships?.[0]?.team?.name || "Production",
+      },
+      approvedBy:currntUser,
+      createdAt: item.createdAt || new Date().toISOString(),
+      updatedAt: item.updatedAt || new Date().toISOString(),
+    }));
+
+    // Map other workers salary
+    const otherWorkersData = otherWorkersSalary.map((item, index) => ({
+      salaryId: `OTH-${index + 1}`,
+      month: item.month || new Date().toISOString(),
+      basicSalary: item.salary,
+      otPayment: item.otPayment || 0,
+      totalSalary: item.salary,
+      personId: item.personId || "-",
+      personCode: item.personCode || "-",
+      person: {
+        name: item.name,
+        position: item.person?.role?.userRole || "Other Worker",
+        department: item.person?.teamMemberships?.[0]?.team?.name || "-",
+      },
+      approvedBy:currntUser,
+      createdAt: item.createdAt || new Date().toISOString(),
+      updatedAt: item.updatedAt || new Date().toISOString(),
+    }));
+
+    const allSalaries = [...teaPluckersData, ...otherWorkersData];
+
+    setSalaryRecords(allSalaries);
+
+    console.log("Combined Salaries:", allSalaries);
+  }
+
   const AddSalaryModal = () => {
     const [formData, setFormData] = useState({
       personId: "",
@@ -195,7 +194,6 @@ const Payroll = () => {
         [name]: value
       }));
       
-      // Clear error when user starts typing
       if (formErrors[name]) {
         setFormErrors(prev => ({
           ...prev,
@@ -447,8 +445,41 @@ const Payroll = () => {
       </div>
     );
   };
+  const approveSalary = async(data)=>{
+    try{
+    const addSalaryResponse = await addSalary(data);
+    if(addSalaryResponse.data.success){
+      toast.success("Salary added sucessfully!", {
+                  position: 'top-center',
+                });
+    }else{
+      toast.error("Failed to add salary!", {
+                  position: 'top-center',
+                });
+    }
+  }catch{
+    toast.error("something went wrong", {
+                position: 'top-center',
+              });
+  }
+  }
+const fetchSalaries = async () => {
+  try {
+    const teaPluckersSalaryResponse = await getTeaPluckersSalary();
+    if(teaPluckersSalaryResponse.data.success){
+      setTeaPluckersSalary(teaPluckersSalaryResponse.data.data);
+    }
+    const otherWorkersSalaryResponse = await getOtherWorkersSalary();
+    if(otherWorkersSalaryResponse.data.success){
+      setOtherWorkersSalary(otherWorkersSalaryResponse.data.data);
+    }
 
-  // Mobile Card Component
+   
+  } catch (error) {
+    console.error("Error fetching salaries:", error);
+  }
+};
+
   const MobileCard = ({ record }) => {
     return (
       <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 mb-4">
@@ -500,7 +531,7 @@ const Payroll = () => {
     );
   };
 
-  // Pagination component
+
   const Pagination = () => {
     const pageNumbers = [];
     const maxVisiblePages = isMobile ? 3 : 5;
@@ -570,7 +601,9 @@ const Payroll = () => {
       </div>
     );
   };
-
+  useEffect(()=>{
+    fetchSalaries();
+  },[])
   if (loading) {
     return (
       <div className="space-y-6">
@@ -607,6 +640,7 @@ const Payroll = () => {
     <div className="space-y-6">
       {/* Add Salary Modal */}
       <AddSalaryModal />
+      <ToastContainer autoClose={2000} />
 
       {/* Payroll Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -709,9 +743,10 @@ const Payroll = () => {
                 {!isMobile && "Refresh"}
               </button>
               
-              <button className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center">
-                <Download className="h-4 w-4 mr-1" />
-                {!isMobile && "Export"}
+              <button className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center"
+              onClick={handleGenerateSalary}>
+                <Loader className="h-4 w-4 mr-1" />
+                {!isMobile && "Generate"}
               </button>
               
               <button 
@@ -783,7 +818,7 @@ const Payroll = () => {
                       <td className="p-4">
                         <div>
                           <div className="font-medium text-gray-900">{record.person.name}</div>
-                          <div className="text-sm text-gray-500">ID: {record.personId}</div>
+                          <div className="text-sm text-gray-500">ID: {record.personCode}</div>
                           <div className="text-sm text-gray-500">{record.person.position}</div>
                         </div>
                       </td>
@@ -803,10 +838,14 @@ const Payroll = () => {
                       </td>
                       <td className="p-4">
                         <div className="flex space-x-2">
-                          <button className="text-green-600 hover:text-green-700 p-1">
+                          <button className="text-blue-600 hover:text-blue-700 p-1 hover:cursor-pointer">
                             <Edit className="h-4 w-4" />
                           </button>
-                          <button className="text-red-600 hover:text-red-700 p-1">
+                          <button className="text-green-600 hover:text-green-700 p-1 hover:cursor-pointer"
+                          onClick={()=>approveSalary(record)}>
+                            <CheckLine className="h-4 w-4" />
+                          </button>
+                          <button className="text-red-600 hover:text-red-700 p-1 hover:cursor-pointer">
                             <Trash2 className="h-4 w-4" />
                           </button>
                         </div>

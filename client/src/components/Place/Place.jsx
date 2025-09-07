@@ -19,7 +19,7 @@ import {
 import { ClipLoader, HashLoader, PropagateLoader, PulseLoader } from "react-spinners";
 import { ToastContainer, toast } from 'react-toastify';
 import {Link} from 'react-router-dom';
-import { allPlaces, createPlace, deletePlace } from '../../services/placeService';
+import { allPlaces, createPlace, updatePlace, deletePlace} from '../../services/placeService';
 
 
 const Place = () => {
@@ -30,6 +30,14 @@ const Place = () => {
   const [selectedPlaces, setselectedPlaces] = useState([]);
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
 
+  // Edit modal states
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingPlace, setEditingPlace] = useState(null);
+  const [editFormData, setEditFormData] = useState({
+    placeCode: '',
+    description: '',
+    size: ''
+  });
 
   const [placeData, setPlaceData] = useState([]);
   const [loadingPlaces, setLoadingPlaces] = useState(false);
@@ -73,6 +81,61 @@ const Place = () => {
       [name]: value
     }));
   };
+
+  // Edit modal handlers
+  const handleEditInputChange = (e) => {
+    const { name, value } = e.target;
+    setEditFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleEditClick = (place) => {
+    setEditingPlace(place);
+    setEditFormData({
+      placeCode: place.placeCode,
+      description: place.description,
+      size: place.size
+    });
+    setShowEditModal(true);
+  };
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      console.log(editingPlace.placeId," ",editFormData)
+      const response = await updatePlace(editingPlace.placeId, editFormData);
+      if (response.data.success) {
+        toast.success("Place updated successfully!", {
+          position: 'top-center',
+        });
+        setShowEditModal(false);
+        setEditingPlace(null);
+        setReload(!reload);
+      } else {
+        toast.error("Failed to update place!", {
+          position: 'top-center',
+        });
+      }
+    } catch (error) {
+      console.log(error);
+      toast.error("Failed to update place!", {
+        position: 'top-center',
+      });
+    }
+  };
+
+  const closeEditModal = () => {
+    setShowEditModal(false);
+    setEditingPlace(null);
+    setEditFormData({
+      placeCode: '',
+      description: '',
+      size: ''
+    });
+  };
+
   const handleSubmit = async (e) => {
       e.preventDefault();    
       try {     
@@ -362,6 +425,13 @@ const Place = () => {
                       
                       <td className="p-4">
                         <div className="flex items-center space-x-2">
+                          <button 
+                            onClick={() => handleEditClick(place)}
+                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
+                            title="Edit Place"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </button>
                           <button className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer" onClick={()=>deleteplaces(place.placeId)}>
                             <Trash2 className="h-4 w-4" />
                           </button>
@@ -433,6 +503,101 @@ const Place = () => {
             </div>
           </>
       </div>
+
+      {showEditModal && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <Edit className="h-5 w-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-semibold text-gray-800">Edit Place</h2>
+                    <p className="text-sm text-gray-600">Update place details</p>
+                  </div>
+                </div>
+                <button
+                  onClick={closeEditModal}
+                  className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Content */}
+            <form onSubmit={handleEditSubmit} className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Place Code
+                  </label>
+                  <input
+                    type="text"
+                    name="placeCode"
+                    value={editFormData.placeCode}
+                    onChange={handleEditInputChange}
+                    placeholder="A21"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Size (Ha)
+                  </label>
+                  <input
+                    type="number"
+                    name="size"
+                    value={editFormData.size}
+                    onChange={handleEditInputChange}
+                    placeholder="10"
+                    min={1}
+                    max={100}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Description
+                  </label>
+                  <input
+                    type="text"
+                    name="description"
+                    value={editFormData.description}
+                    onChange={handleEditInputChange}
+                    placeholder="Tea Plucking"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="flex items-center justify-end space-x-3 mt-8 pt-6 border-t border-gray-200">
+                <button
+                  type="button"
+                  onClick={closeEditModal}
+                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                >
+                  Update Place
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>}
     </>
   );

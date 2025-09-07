@@ -5,7 +5,7 @@
 -- Dumped from database version 17.5
 -- Dumped by pg_dump version 17.5
 
--- Started on 2025-09-07 13:53:36
+-- Started on 2025-09-07 13:56:26
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -594,7 +594,7 @@ a71b34b2-7123-4829-a8e3-1b8809fd3fde	SUP2	Sadun	Ishara	200189288321	isharas@gmai
 474bfa4d-14bd-4902-9eff-b1362d5247e1	TEA3	Palitha	Siriwardana	887656453v		0756776621	No 23. Panwila	M	\N	93791f60-0330-441e-9637-e26f4708824f	N	2025-08-30 06:25:47.452	\N
 7802111f-be36-4153-930c-fe3ab00285c2	TEA4	Nirmala	Amarasinghe	897865762v		0756776611	No 22, Kabaragala	F	\N	93791f60-0330-441e-9637-e26f4708824f	N	2025-08-30 08:46:56.705	\N
 699f9d86-99b2-4e64-8c78-96b7cae61176	TEA5	Kamala	Gunawardhana	835676523v		0756776132	No 04, Madulkele	F	\N	93791f60-0330-441e-9637-e26f4708824f	N	2025-08-30 08:51:43.24	\N
-d1daf799-7d5c-416e-95ea-7c2c4f467059	MAN6	Amal	Senarathna	935674562v	pavanpiyumantha222@gmail.com	0756776311	no 33, panwila	M	\N	7d8feca0-6e66-46d2-8096-a81d4fb52937	N	2025-09-02 16:01:07.783	\N
+d1daf799-7d5c-416e-95ea-7c2c4f467059	MAN6	Amal	Senarathna	935674562v	amal@gmail.com	0756776311	no 33, panwila	M	\N	7d8feca0-6e66-46d2-8096-a81d4fb52937	N	2025-09-02 16:01:07.783	\N
 \.
 
 
@@ -1171,7 +1171,7 @@ ALTER TABLE ONLY public.vehicle_usage
 REVOKE USAGE ON SCHEMA public FROM PUBLIC;
 
 
--- Completed on 2025-09-07 13:53:36
+-- Completed on 2025-09-07 13:56:27
 
 --
 -- PostgreSQL database dump complete

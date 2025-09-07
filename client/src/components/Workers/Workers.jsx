@@ -26,7 +26,7 @@ import {
 } from "lucide-react";
 import WorkerDataEntryForm from './WorkerDataEntryForm';
 import { allWorkers, deleteWorker } from "../../services/workerService";
-import { ClipLoader, HashLoader, PropagateLoader, PulseLoader } from "react-spinners";
+import { PropagateLoader } from "react-spinners";
 import { ToastContainer, toast } from 'react-toastify';
 
 const Workers = () => {
@@ -90,7 +90,7 @@ const Workers = () => {
   const departments = ['all', 'Plucking', 'Processing', 'Packaging', 'Quality Control'];
   const statuses = ['all', 'Present', 'Absent', 'On Leave'];
 
-  // Filter and search logic
+
   const filteredWorkers = workersData.filter(worker => {
     const matchesSearch = `${worker.firstName} ${worker.lastName}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          worker.personCode.toLowerCase().includes(searchQuery.toLowerCase()) ||

@@ -1,6 +1,5 @@
 import React, { useState, useRef } from 'react';
 import { Upload, Image, Eye, Download, Sparkles, RefreshCw, FileImage, X, CheckCircle, AlertCircle, Camera, Zap } from 'lucide-react';
-import {analyzeImage} from '../../services/AIAnalaysisService';
 
 import axios from 'axios';
 
@@ -56,18 +55,16 @@ const Solution = () => {
     setIsAnalyzing(true);
     
     try {
-      // Create FormData to send the image file
       const formData = new FormData();
       formData.append('image', selectedImage);
       formData.append('lang', selectedLanguage);
       
       const baseUrl = import.meta.env.VITE_API_BASE_URL;
-      // Send image to backend
       const response = await axios.post(`${baseUrl}/ai/analyzeImage`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
-        timeout: 30000, // 30 second timeout
+        timeout: 30000,
       });
       
       

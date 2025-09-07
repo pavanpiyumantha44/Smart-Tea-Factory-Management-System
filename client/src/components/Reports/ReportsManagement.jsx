@@ -20,6 +20,9 @@ import {
   Clock,
   Eye
 } from "lucide-react";
+import { getReport } from "../../services/ReportService";
+import { ToastContainer, toast } from 'react-toastify';
+import jsPDF from 'jspdf'
 
 const ReportsManagement = () => {
   const [reportConfig, setReportConfig] = useState({
@@ -36,7 +39,6 @@ const ReportsManagement = () => {
   const [error, setError] = useState(null);
   const [isMobile, setIsMobile] = useState(false);
 
-  // Check for mobile screen
   useEffect(() => {
     const checkScreenSize = () => {
       setIsMobile(window.innerWidth < 768);
@@ -48,151 +50,152 @@ const ReportsManagement = () => {
     return () => window.removeEventListener('resize', checkScreenSize);
   }, []);
 
-  // Report types configuration
+
   const reportTypes = [
-    {
-      value: "vehicle",
-      label: "Vehicle Reports",
-      icon: Truck,
-      description: "Vehicle usage, maintenance, and fleet status",
-      sampleColumns: ["Vehicle ID", "Plate Number", "Type", "Status", "Last Updated"]
-    },
     {
       value: "salary",
       label: "Salary Reports",
       icon: DollarSign,
       description: "Employee payroll and compensation data",
-      sampleColumns: ["Employee ID", "Name", "Department", "Basic Salary", "OT Payment", "Total"]
+      sampleColumns: ["Employee ID", "Name","Month", "Basic Salary", "OT Payment", "Total","Created Date"]
     },
     {
       value: "inventory",
       label: "Inventory Reports",
       icon: Package,
       description: "Stock levels, usage, and inventory movements",
-      sampleColumns: ["Item ID", "Product Name", "Category", "Quantity", "Unit Price", "Status"]
+      sampleColumns: ["Item ID", "Product Name", "Category", "Quantity", "Unit Price","Created Date"]
     },
     {
       value: "tea_plucking",
       label: "Tea Plucking Reports",
       icon: Leaf,
-      description: "Daily tea collection and worker productivity",
-      sampleColumns: ["Date", "Worker", "Section", "Quantity (kg)", "Quality Grade", "Payment"]
+      description: "Daily tea collection records",
+      sampleColumns: ["Plucking ID", "Worker", "Date", "Weight (Kg)","Rate Per Kg", "Total Payment","Created Date"]
     },
     {
       value: "tasks",
       label: "Task Reports",
       icon: CheckCircle,
       description: "Task assignments, completion, and productivity",
-      sampleColumns: ["Task ID", "Assigned To", "Description", "Status", "Due Date", "Completed"]
+      sampleColumns: ["Task ID", "Task Name", "Description","Task Type", "Status","Creator","Supervisor","Team","Worker","Assigned Date", "Created Date"]
     },
     {
-      value: "locations",
-      label: "Location Reports",
+      value: "place",
+      label: "Places Reports",
       icon: MapPin,
       description: "Farm sections, areas, and location-based data",
-      sampleColumns: ["Location ID", "Section Name", "Area (acres)", "Crop Type", "Last Harvest"]
+      sampleColumns: ["Place Code","Description", "Area (Hectares)", "Created Date"]
     },
     {
       value: "attendance",
       label: "Attendance Reports",
       icon: Users,
       description: "Employee attendance and working hours",
-      sampleColumns: ["Employee", "Date", "Check In", "Check Out", "Hours Worked", "Status"]
+      sampleColumns: ["Employee", "Date", "Check In", "Check Out","Status", "Hours Worked", "Created Date"]
     },
     {
-      value: "production",
-      label: "Production Reports",
+      value: "workers",
+      label: "Workers Reports",
+      icon: Users,
+      description: "Workers Details",
+      sampleColumns: ["Worker ID", "Name","Role","NIC", "Email","Phone", "Address","Gender","Created Date"]
+    },
+    {
+      value: "ai-solutions",
+      label: "Solutions Reports",
       icon: BarChart3,
-      description: "Daily production metrics and quality data",
-      sampleColumns: ["Date", "Raw Tea (kg)", "Processed (kg)", "Quality Grade", "Efficiency %"]
+      description: "Tea Diseases and Solutions",
+      sampleColumns: ["Disease", "Solution", "Created Date"]
     }
   ];
 
-  // Mock data generator based on report type
-  const generateMockData = (reportType, fromDate, toDate) => {
+  const generateData = (reportType, fromDate, toDate,fetchData) => {
+    console.log(fetchData);
     const data = [];
     const startDate = new Date(fromDate);
     const endDate = new Date(toDate);
     const daysDiff = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
-    const recordCount = Math.min(Math.max(daysDiff, 5), 50); // Between 5-50 records
 
-    for (let i = 0; i < recordCount; i++) {
+    for (let i = 0; i < fetchData.length; i++) {
       switch (reportType) {
-        case "vehicle":
-          data.push({
-            "Vehicle ID": `VEH${String(i + 1).padStart(3, '0')}`,
-            "Plate Number": `${['WP', 'CP', 'KA', 'SP'][i % 4]}-${1000 + i}`,
-            "Type": ["Truck", "Van", "Pickup", "Tractor"][i % 4],
-            "Status": ["Available", "In Use", "Maintenance"][i % 3],
-            "Last Updated": new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toLocaleDateString()
-          });
-          break;
         case "salary":
           data.push({
-            "Employee ID": `EMP${String(i + 1).padStart(3, '0')}`,
-            "Name": ["Samantha Perera", "Kamal Silva", "Nimal Fernando", "Priya Rajapaksa"][i % 4],
-            "Department": ["Production", "Processing", "Quality Control", "Maintenance"][i % 4],
-            "Basic Salary": `${(35000 + Math.random() * 50000).toFixed(0)} LKR`,
-            "OT Payment": `${(Math.random() * 20000).toFixed(0)} LKR`,
-            "Total": `${(40000 + Math.random() * 60000).toFixed(0)} LKR`
+            "Employee ID": `${fetchData[i].person.personCode}`,
+            "Name": `${fetchData[i].person.firstName}`,
+            "Month":`${fetchData[i].month}`,
+            "Basic Salary": `${fetchData[i].basicSalary}`,
+            "OT Payment": `${fetchData[i].otPayment}`,
+            "Total": `${fetchData[i].totalPayment}`,
+            "Created Date Time" : `${new Date(fetchData[i].createdAt).toLocaleString()}`
           });
           break;
         case "inventory":
           data.push({
-            "Item ID": `ITM${String(i + 1).padStart(3, '0')}`,
-            "Product Name": ["Green Tea Leaves", "Black Tea", "Fertilizer", "Tools"][i % 4],
-            "Category": ["TEA", "TEA", "FERTILIZER", "TOOLS"][i % 4],
-            "Quantity": `${(100 + Math.random() * 1000).toFixed(0)} kg`,
-            "Unit Price": `${(50 + Math.random() * 500).toFixed(2)} LKR`,
-            "Status": ["Good", "Low", "Critical"][i % 3]
+            "Item ID": `ITM-${fetchData[i].itemId}`,
+            "Product Name": fetchData[i].name,
+            "Category": fetchData[i].category,
+            "Quantity": `${fetchData[i].quantity} ${fetchData[i].unit? fetchData[i].unit:""}`,
+            "Unit Price": `${fetchData[i].unitPrice} LKR`,
+            "Created Date Time" : `${new Date(fetchData[i].createdAt).toLocaleString()}`
           });
           break;
         case "tea_plucking":
           data.push({
-            "Date": new Date(startDate.getTime() + (i * 24 * 60 * 60 * 1000)).toLocaleDateString(),
-            "Worker": ["Kamala", "Siri", "Nanda", "Mala"][i % 4],
-            "Section": [`Section ${String.fromCharCode(65 + (i % 5))}`],
-            "Quantity (kg)": `${(15 + Math.random() * 35).toFixed(1)} kg`,
-            "Quality Grade": ["A", "B", "C"][i % 3],
-            "Payment": `${(800 + Math.random() * 1200).toFixed(0)} LKR`
+            "Plucking ID": `TP-${fetchData[i].tpId}`,
+            "Worker": `${fetchData[i].person.personCode}`,
+            "Date": `${new Date(fetchData[i].date).toDateString()}`,
+            "Weight (kg)": `${fetchData[i].weightKg} Kg`,
+            "Rate Per Kg": `${fetchData[i].ratePerKg} Kg`,
+            "Total Payment": `${fetchData[i].totalPayment}`,
+            "Created Date Time" : `${new Date(fetchData[i].createdAt).toLocaleString()}`
           });
           break;
         case "tasks":
           data.push({
-            "Task ID": `TSK${String(i + 1).padStart(3, '0')}`,
-            "Assigned To": ["John Doe", "Jane Smith", "Mike Wilson"][i % 3],
-            "Description": ["Harvest Section A", "Machine Maintenance", "Quality Check"][i % 3],
-            "Status": ["Completed", "In Progress", "Pending"][i % 3],
-            "Due Date": new Date(Date.now() + Math.random() * 7 * 24 * 60 * 60 * 1000).toLocaleDateString(),
-            "Completed": ["Yes", "No", "Partial"][i % 3]
+            "Task ID": `TSK-${fetchData[i].taskCode}`,
+            "Task Name": `${fetchData[i].taskName}`,
+            "Description": `${fetchData[i].description}`,
+            "Task Type": `${fetchData[i].taskType}`,
+            "Status": `${fetchData[i].taskStatus}`,
+            "Creator": `${fetchData[i].creator.personCode}`,
+            "Supervisor": fetchData[i].supervisor.personCode,
+            "Team": fetchData[i].assignedTeam.name,
+            "Worker": fetchData[i].worker? fetchData[i].worker.personCode : "",
+            "Assigned Date":`${new Date(fetchData[i].startDateTime).toLocaleString()}`,
+            "Created Date":`${new Date(fetchData[i].createdAt).toLocaleString()}`
           });
           break;
-        case "locations":
+        case "place":
           data.push({
-            "Location ID": `LOC${String(i + 1).padStart(3, '0')}`,
-            "Section Name": `Section ${String.fromCharCode(65 + (i % 10))}`,
-            "Area (acres)": `${(2 + Math.random() * 8).toFixed(1)} acres`,
-            "Crop Type": ["Ceylon Tea", "Green Tea", "Black Tea"][i % 3],
-            "Last Harvest": new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toLocaleDateString()
+            "Place Code": `${fetchData[i].placeCode}`,
+            "Description": `${fetchData[i].description}`,
+            "Area (Hectares)": `${fetchData[i].size}`,
+            "Created Date":`${new Date(fetchData[i].createdAt).toLocaleString()}`
           });
           break;
         case "attendance":
           data.push({
-            "Employee": ["Samantha P.", "Kamal S.", "Nimal F.", "Priya R."][i % 4],
-            "Date": new Date(startDate.getTime() + (i * 24 * 60 * 60 * 1000)).toLocaleDateString(),
-            "Check In": `${7 + Math.floor(Math.random() * 2)}:${String(Math.floor(Math.random() * 60)).padStart(2, '0')} AM`,
-            "Check Out": `${4 + Math.floor(Math.random() * 2)}:${String(Math.floor(Math.random() * 60)).padStart(2, '0')} PM`,
-            "Hours Worked": `${(7 + Math.random() * 3).toFixed(1)} hrs`,
-            "Status": ["Present", "Late", "Half Day"][i % 3]
+            "Employee": `${fetchData[i].person.personCode}`,
+            "Date": `${new Date(fetchData[i].currentDate).toDateString()}`,
+            "Check In": `${new Date(fetchData[i].startDttm).toLocaleTimeString()}`,
+            "Check Out": `${new Date(fetchData[i].endDttm).toLocaleTimeString()}`,
+            "Status":`${fetchData[i].status}`,
+            "Hours Worked": `${fetchData[i].workHours}`,
+            "Created Date": `${new Date(fetchData[i].createdAt).toLocaleString()}`
           });
           break;
-        case "production":
+        case "workers":
           data.push({
-            "Date": new Date(startDate.getTime() + (i * 24 * 60 * 60 * 1000)).toLocaleDateString(),
-            "Raw Tea (kg)": `${(500 + Math.random() * 1000).toFixed(0)} kg`,
-            "Processed (kg)": `${(400 + Math.random() * 800).toFixed(0)} kg`,
-            "Quality Grade": ["Premium", "Standard", "Basic"][i % 3],
-            "Efficiency %": `${(75 + Math.random() * 20).toFixed(1)}%`
+            "Worker ID": `${fetchData[i].personCode}`,
+            "Name": `${fetchData[i].firstName}`,
+            "Role": `${fetchData[i].role.userRole}`,
+            "NIC": `${fetchData[i].nicNumber}`,
+            "Email": `${fetchData[i].email?fetchData[i].email : "-"}`,
+            "Phone": `${fetchData[i].phone}`,
+            "Address": `${fetchData[i].address}`,
+            "Gender": `${fetchData[i].gender}`,
+            "Created Date": `${new Date(fetchData[i].createdAt).toLocaleString()}`
           });
           break;
         default:
@@ -202,7 +205,6 @@ const ReportsManagement = () => {
     return data;
   };
 
-  // Handle form input changes
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setReportConfig(prev => ({
@@ -212,7 +214,7 @@ const ReportsManagement = () => {
     setError(null);
   };
 
-  // Generate report
+
   const handleGenerateReport = async () => {
     if (!reportConfig.reportType) {
       setError("Please select a report type");
@@ -231,17 +233,29 @@ const ReportsManagement = () => {
     setError(null);
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      const mockData = generateMockData(
-        reportConfig.reportType, 
-        reportConfig.fromDate, 
-        reportConfig.toDate
-      );
-      
-      setReportData(mockData);
-      setHasGeneratedReport(true);
+      const reportResponse = await getReport(reportConfig);
+      if(reportResponse.data.success)
+      {
+        if(reportResponse.data.data.length>0)
+        {
+          const reportData = generateData(
+            reportConfig.reportType, 
+            reportConfig.fromDate, 
+            reportConfig.toDate,
+            reportResponse.data.data
+          );
+          setReportData(reportData);
+          setHasGeneratedReport(true);
+      }else{
+        toast.error("Data not found", {
+            position: 'top-center',
+          });
+      }
+    }else{
+      toast.error("Something went Wrong", {
+            position: 'top-center',
+          });
+    }
     } catch (err) {
       setError("Failed to generate report");
     } finally {
@@ -276,7 +290,7 @@ const ReportsManagement = () => {
     }
   };
 
-  // Download Excel file
+
   const downloadExcel = async (fileName, data, reportType) => {
     // Create workbook and worksheet
     const ws_data = [
@@ -309,8 +323,6 @@ const ReportsManagement = () => {
 
   // Download PDF file using jsPDF
   const downloadPDF = async (fileName, data, reportType) => {
-    // Load jsPDF dynamically
-    const jsPDF = (await import('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js')).jsPDF;
     
     const doc = new jsPDF();
     const pageHeight = doc.internal.pageSize.height;
@@ -343,7 +355,6 @@ const ReportsManagement = () => {
     });
     yPosition += 8;
 
-    // Add horizontal line
     doc.line(20, yPosition, doc.internal.pageSize.width - 20, yPosition);
     yPosition += 5;
 
@@ -382,12 +393,12 @@ const ReportsManagement = () => {
     doc.save(`${fileName}.pdf`);
   };
 
-  // Get current date for max date input
+
   const getCurrentDate = () => {
     return new Date().toISOString().split('T')[0];
   };
 
-  // Get date 30 days ago for default from date
+
   const getDefaultFromDate = () => {
     const date = new Date();
     date.setDate(date.getDate() - 30);
@@ -414,6 +425,7 @@ const ReportsManagement = () => {
 
   return (
     <div className="space-y-6">
+      <ToastContainer autoClose={2000} />
       {/* Report Configuration */}
       <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-200">
         <div className="flex items-center justify-between mb-6">
@@ -792,106 +804,6 @@ const ReportsManagement = () => {
               Stock Report
             </span>
           </button>
-        </div>
-      </div>
-
-      {/* Report History */}
-      <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-200">
-        <h3 className="text-lg font-semibold text-gray-800 mb-4">Recent Reports</h3>
-        <div className="space-y-3">
-          {[
-            {
-              name: "Vehicle Fleet Report",
-              type: "PDF",
-              date: "2024-08-01",
-              size: "2.4 MB",
-              status: "Completed"
-            },
-            {
-              name: "Monthly Payroll Summary",
-              type: "Excel",
-              date: "2024-07-31",
-              size: "1.8 MB",
-              status: "Completed"
-            },
-            {
-              name: "Tea Collection Report",
-              type: "PDF",
-              date: "2024-07-30",
-              size: "3.1 MB",
-              status: "Completed"
-            },
-            {
-              name: "Inventory Stock Report",
-              type: "Excel",
-              date: "2024-07-29",
-              size: "2.7 MB",
-              status: "Completed"
-            }
-          ].map((report, index) => (
-            <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                  <FileText className="h-5 w-5 text-green-600" />
-                </div>
-                <div>
-                  <h4 className="font-medium text-gray-900 text-sm">{report.name}</h4>
-                  <p className="text-xs text-gray-500">
-                    {report.type} • {report.size} • {report.date}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center space-x-2">
-                <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">
-                  {report.status}
-                </span>
-                {!isMobile && (
-                  <button className="text-gray-400 hover:text-gray-600 p-1">
-                    <Download className="h-4 w-4" />
-                  </button>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Report Analytics */}
-      <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-200">
-        <h3 className="text-lg font-semibold text-gray-800 mb-4">Report Analytics</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div className="bg-gradient-to-r from-green-50 to-green-100 p-4 rounded-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-green-700">Most Generated</p>
-                <p className="text-lg font-bold text-green-900 mt-1">Tea Plucking</p>
-                <p className="text-xs text-green-600">45 reports this month</p>
-              </div>
-              <Leaf className="h-8 w-8 text-green-600" />
-            </div>
-          </div>
-          
-          <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-4 rounded-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-blue-700">Total Downloads</p>
-                <p className="text-lg font-bold text-blue-900 mt-1">127</p>
-                <p className="text-xs text-blue-600">This month</p>
-              </div>
-              <Download className="h-8 w-8 text-blue-600" />
-            </div>
-          </div>
-          
-          <div className="bg-gradient-to-r from-purple-50 to-purple-100 p-4 rounded-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-purple-700">Preferred Format</p>
-                <p className="text-lg font-bold text-purple-900 mt-1">Excel</p>
-                <p className="text-xs text-purple-600">68% of downloads</p>
-              </div>
-              <FileText className="h-8 w-8 text-purple-600" />
-            </div>
-          </div>
         </div>
       </div>
     </div>

@@ -28,7 +28,7 @@ import {
 } from "lucide-react";
 import { allWorkers } from '../../services/workerService';
 import { allTeams } from '../../services/teamSlice';
-import { addInitialData, getAllAttendance } from '../../services/attendanceService';
+import { addInitialData, getAllAttendance, markAsAbsent, markAsCheckIn, markAsCheckOut, markAsHalfDay, markAsLeave } from '../../services/attendanceService';
 
 
 const Attendance = () => {
@@ -121,13 +121,34 @@ const Attendance = () => {
         : currentWorkers.map(worker => worker.workerId)
     );
   };
-
-  const markAttendance = (workerId, action) => {
-    // const currentTime = new Date().toLocaleTimeString('en-US', { 
-    //   hour12: false, 
-    //   hour: '2-digit', 
-    //   minute: '2-digit' 
-    // });
+  const handleCheckin = async(data)=>{
+    const checkinResponse = await markAsCheckIn(data.attendanceId,data)
+    setReload(!reload)
+  }
+  const handleCheckOut = async(data)=>{
+    const checkinResponse = await markAsCheckOut(data.attendanceId,data)
+     setReload(!reload)
+  }
+  const handleAbsent = async(data)=>{
+    const absentResponse = await markAsAbsent(data.attendanceId,data)
+     setReload(!reload)
+  }
+  const handleLeave = async(data)=>{
+    const leaveResponse = await markAsLeave(data.attendanceId,data)
+     setReload(!reload)
+  }
+  const handleHalfDay = async(data)=>{
+    console.log(data);
+    const halfDayResponse = await markAsHalfDay(data.attendanceId,data)
+     setReload(!reload)
+  }
+  const handleTotalHours = (data)=>{
+    const hours = Math.floor(data / 60);
+    const minutes = data % 60;
+    const workHoursDisplay = `${hours}h ${minutes}m`;
+    return workHoursDisplay;
+  }
+  const markAttendance = (workerId, action, attendanceId) => {
     const currentTime = new Date().toLocaleTimeString();
 
     setAttendanceData(prev => prev.map(worker => {
@@ -136,45 +157,26 @@ const Attendance = () => {
         
         if (action === 'checkin' && worker.checkIn === '-') {
           updatedWorker.checkIn = currentTime;
-          updatedWorker.checkOut = '-'; // Ensure checkout is still pending
+          updatedWorker.checkOut = '-';
           updatedWorker.status = 'PRESENT';
-          updatedWorker.workHours = 'In Progress'; // Show work is in progress
-        } else if (action === 'checkout' && worker.checkIn !== '-' && worker.checkOut === '-') {
-          updatedWorker.checkOut = currentTime;
-          
-          // Calculate actual work hours
-          const checkInTime = worker.checkIn.split(':');
-          const checkOutTime = currentTime.split(':');
-          const checkInMinutes = parseInt(checkInTime[0]) * 60 + parseInt(checkInTime[1]);
-          const checkOutMinutes = parseInt(checkOutTime[0]) * 60 + parseInt(checkOutTime[1]);
-          
-          // Total minutes worked
-          const totalMinutes = checkOutMinutes - checkInMinutes;
-          
-          // Convert to hours and minutes format
-          const hours = Math.floor(totalMinutes / 60);
-          const minutes = totalMinutes % 60;
-          const workHoursDisplay = `${hours}h ${minutes}m`;
-          
-          // Calculate overtime (anything over 8 hours = 480 minutes)
-          const overtimeMinutes = Math.max(0, totalMinutes - 480);
-          const overtimeHours = Math.floor(overtimeMinutes / 60);
-          const overtimeMins = overtimeMinutes % 60;
-          const overtimeDisplay = overtimeMinutes > 0 ? `${overtimeHours}h ${overtimeMins}m` : '0';
-          
-          updatedWorker.workHours = workHoursDisplay;
-          updatedWorker.overtime = overtimeDisplay;
+          updatedWorker.workHours = 'In Progress';
+          handleCheckin({attendanceId:attendanceId,workerId:worker.personId,checkIn:new Date(),status:updatedWorker.status})
+
+        } 
+        else if (action === 'checkout' && worker.checkIn !== '-' && worker.checkOut === '-') {
+          handleCheckOut({attendanceId:attendanceId,workerId:worker.personId,checkOut:new Date(),checkIn:worker.checkIn})
         } else if (action === 'ABSENT') {
           updatedWorker = {
             ...worker,
             checkIn: '-',
             checkOut: '-',
             breakTime: '-',
-            workHours: '0h 0m',
+            workHours: 0,
             status: 'ABSENT',
             overtime: '0',
             location: '-'
           };
+          handleAbsent({attendanceId:attendanceId,workerId:worker.personId,workHours:0,status:'ABSENT'})
         } else if (action === 'leave') {
           // Handle leave - if already checked in, mark as HALFDAY, otherwise full day leave
           if (worker.checkIn !== '-' && worker.checkOut === '-') {
@@ -192,6 +194,7 @@ const Attendance = () => {
             const minutes = totalMinutes % 60;
             updatedWorker.workHours = `${hours}h ${minutes}m`;
             updatedWorker.overtime = '0';
+            handleHalfDay({attendanceId:attendanceId,workerId:worker.personId,checkIn:worker.checkIn,checkOut:new Date(),status:'HALFDAY'})
           } else {
             // Full day leave (never checked in)
             updatedWorker = {
@@ -204,6 +207,7 @@ const Attendance = () => {
               overtime: '0',
               location: '-'
             };
+            handleLeave({attendanceId:attendanceId,workerId:worker.personId,workHours:0,status:'LEAVE'})
           }
         }
         
@@ -250,7 +254,6 @@ const Attendance = () => {
   // Mobile Card Component for Worker
   const WorkerCard = ({ worker }) => (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-4">
-      {/* Worker Header */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center space-x-3">
           {markingMode && (
@@ -283,7 +286,7 @@ const Attendance = () => {
         </div>
         <div>
           <div className="text-xs text-gray-500 uppercase tracking-wide mb-1">Work Hours</div>
-          <div className="text-sm font-medium text-gray-900">{worker.workHours}</div>
+          <div className="text-sm font-medium text-gray-900">{handleTotalHours(worker.workHours)}</div>
           {worker.overtime !== '0' && (
             <div className="text-xs text-orange-600">OT: {worker.overtime}</div>
           )}
@@ -294,11 +297,11 @@ const Attendance = () => {
       <div className="grid grid-cols-2 gap-4 mb-4">
         <div className="bg-gray-50 rounded-lg p-3">
           <div className="text-xs text-gray-500 uppercase tracking-wide mb-1">Check In</div>
-          <div className="text-sm font-medium text-gray-900">{worker.checkIn}</div>
+          <div className="text-sm font-medium text-gray-900">{worker.checkIn !== "-" ? new Date(worker.checkIn).toLocaleString().split(",")[0] + " " + new Date(worker.checkIn).toLocaleString().split(",")[1] : "-"}</div>
         </div>
         <div className="bg-gray-50 rounded-lg p-3">
           <div className="text-xs text-gray-500 uppercase tracking-wide mb-1">Check Out</div>
-          <div className="text-sm font-medium text-gray-900">{worker.checkOut}</div>
+          <div className="text-sm font-medium text-gray-900">{worker.checkOut !== "-" ? new Date(worker.checkOut).toLocaleString().split(",")[0] + " " + new Date(worker.checkOut).toLocaleString().split(",")[1] : "-"}</div>
         </div>
       </div>
 
@@ -309,21 +312,21 @@ const Attendance = () => {
             // Worker hasn't checked in yet - show check in, ABSENT, and leave options
             <div className="grid grid-cols-3 gap-2">
               <button 
-                onClick={() => markAttendance(worker.workerId, 'checkin')}
+                onClick={() => markAttendance(worker.workerId, 'checkin',worker.attendanceId)}
                 className="flex items-center justify-center px-3 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
               >
                 <CheckCircle className="h-4 w-4 mr-1" />
                 Check In
               </button>
               <button 
-                onClick={() => markAttendance(worker.workerId, 'ABSENT')}
+                onClick={() => markAttendance(worker.workerId, 'ABSENT',worker.attendanceId)}
                 className="flex items-center justify-center px-3 py-3 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors text-sm font-medium"
               >
                 <XCircle className="h-4 w-4 mr-1" />
                 ABSENT
               </button>
               <button 
-                onClick={() => markAttendance(worker.workerId, 'leave')}
+                onClick={() => markAttendance(worker.workerId, 'leave',worker.attendanceId)}
                 className="flex items-center justify-center px-3 py-3 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-colors text-sm font-medium"
               >
                 <Calendar className="h-4 w-4 mr-1" />
@@ -334,14 +337,14 @@ const Attendance = () => {
             // Worker has checked in but not out - show checkout and half-day leave options
             <div className="grid grid-cols-2 gap-2">
               <button 
-                onClick={() => markAttendance(worker.workerId, 'checkout')}
+                onClick={() => markAttendance(worker.workerId, 'checkout',worker.attendanceId)}
                 className="flex items-center justify-center px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
               >
                 <Clock className="h-4 w-4 mr-2" />
                 Check Out
               </button>
               <button 
-                onClick={() => markAttendance(worker.workerId, 'leave')}
+                onClick={() => markAttendance(worker.workerId, 'leave',worker.attendanceId)}
                 className="flex items-center justify-center px-4 py-3 bg-yellow-100 text-yellow-700 rounded-lg hover:bg-yellow-200 transition-colors text-sm font-medium"
               >
                 <Calendar className="h-4 w-4 mr-2" />
@@ -377,14 +380,15 @@ const Attendance = () => {
     today.setHours(0,0,0,0);
     if(workersResponse.data.success){
       mappedAttendance = workersResponse.data.allPerson.map(worker => ({
+      attendanceId:"",
       workerId: worker.personCode,
       personId:worker.personId,
       name: worker.firstName,   
       team: worker.teamMemberships[0]?.team?.name || "-",
       checkIn: "-",
       checkOut: "-",
-      startDttm: new Date(),
-      endDttm: new Date(),
+      startDttm: null,
+      endDttm: null,
       currentDate: today,
       workHours: 0,
       status: "-",
@@ -394,28 +398,37 @@ const Attendance = () => {
     
     setInitialData(mappedAttendance);
     }
-    //console.log(mappedAttendance);
+    console.log(mappedAttendance);
     const initialDataSetupResponse = await addInitialData(mappedAttendance)
+    //console.log(initialDataSetupResponse.data);
     const fetchAttendanceResponse = await getAllAttendance();
     if(fetchAttendanceResponse.data.success){
-      const mappedAttendance = workersResponse.data.allPerson.map(worker => ({
+      const attendanceRecords = fetchAttendanceResponse.data.data;
+      const mappedAttendance = workersResponse.data.allPerson.map(worker => {
+    const existingAttendance = attendanceRecords.find(
+      (record) => record.personId === worker.personId
+    );
+
+    return {
       workerId: worker.personCode,
-      personId:worker.personId,
-      name: worker.firstName,   
+      personId: worker.personId,
+      name: worker.firstName,
       team: worker.teamMemberships[0]?.team?.name || "-",
-      checkIn: "-",
-      checkOut: "-",
-      startDttm: new Date(),
-      endDttm: new Date(),
-      currentDate: today,
-      workHours: 0,
-      status: "-",
-      overtime: "0",           
+      attendanceId: existingAttendance?.attendanceId || null,
+      checkIn: existingAttendance?.startDttm || "-",
+      checkOut: existingAttendance?.endDttm || "-",
+      startDttm: existingAttendance?.startDttm || null,
+      endDttm: existingAttendance?.endDttm || null,
+      currentDate: existingAttendance?.currentDate || today,
+      workHours: existingAttendance?.workHours || 0,
+      status: existingAttendance?.status || "-",
+      overtime: existingAttendance?.overtime || "0",
       date: new Date().toISOString().split("T")[0],
-    }));
-      console.log(fetchAttendanceResponse.data);
-      setAttendanceData(mappedAttendance);
-    }
+    };
+  });
+
+  setAttendanceData(mappedAttendance);
+}
   }
   const FetchTeams = async()=>{
     const teamsResponse = await allTeams();
@@ -426,7 +439,7 @@ const Attendance = () => {
   useEffect(()=>{
     FetchWorkers();
     FetchTeams();
-  },[])
+  },[reload])
   return (
     <>
       {loadingAttendance ? (
@@ -703,11 +716,11 @@ const Attendance = () => {
                           <div className="space-y-1">
                             <div className="flex items-center text-sm">
                               <span className="text-gray-500 w-8">In:</span>
-                              <span className="font-medium">{worker.checkIn}</span>
+                              <span className="font-medium">{worker.checkIn !== "-" ? new Date(worker.checkIn).toLocaleString().split(",")[0] + " " + new Date(worker.checkIn).toLocaleString().split(",")[1] : "-"}</span>
                             </div>
                             <div className="flex items-center text-sm">
                               <span className="text-gray-500 w-8">Out:</span>
-                              <span className="font-medium">{worker.checkOut}</span>
+                              <span className="font-medium">{worker.checkOut !== "-" ? new Date(worker.checkOut).toLocaleString().split(",")[0] + " " + new Date(worker.checkOut).toLocaleString().split(",")[1] : "-"}</span>
                             </div>
                           </div>
                         </td>
@@ -715,7 +728,7 @@ const Attendance = () => {
                         <td className="p-4">
                           <div className="space-y-1">
                             <div className="font-semibold text-gray-900">
-                              {worker.workHours}
+                              {handleTotalHours(worker.workHours)}
                             </div>
                             {worker.breakTime !== '-' && (
                               <div className="text-xs text-gray-500">
@@ -739,44 +752,43 @@ const Attendance = () => {
                         
                         <td className="p-4">
                           {markingMode ? (
-                            <div className="flex items-center space-x-1">
+                            <div className="flex items-center space-x-1">                            
                               {worker.checkIn === '-' ? (
-                                // Worker hasn't checked in yet - show all initial options
                                 <>
                                   <button 
-                                    onClick={() => markAttendance(worker.workerId, 'checkin')}
+                                    onClick={() => markAttendance(worker.workerId, 'checkin',worker.attendanceId)}
                                     className="p-1 text-green-600 hover:bg-green-50 rounded transition-colors"
                                     title="Check In"
                                   >
                                     <CheckCircle className="h-4 w-4" />
                                   </button>
                                   <button 
-                                    onClick={() => markAttendance(worker.workerId, 'ABSENT')}
+                                    onClick={() => markAttendance(worker.workerId, 'ABSENT',worker.attendanceId)}
                                     className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors"
                                     title="Mark ABSENT"
                                   >
                                     <XCircle className="h-4 w-4" />
                                   </button>
                                   <button 
-                                    onClick={() => markAttendance(worker.workerId, 'leave')}
+                                    onClick={() => markAttendance(worker.workerId, 'leave',worker.attendanceId)}
                                     className="p-1 text-blue-600 hover:bg-blue-50 rounded transition-colors"
                                     title="Mark LEAVE"
                                   >
                                     <Calendar className="h-4 w-4" />
                                   </button>
                                 </>
-                              ) : worker.checkOut === '-' ? (
+                              ) :worker.checkOut === '-' ? (
                                 // Worker has checked in but not out - show checkout and half-day options
                                 <>
                                   <button 
-                                    onClick={() => markAttendance(worker.workerId, 'checkout')}
+                                    onClick={() => markAttendance(worker.workerId, 'checkout',worker.attendanceId)}
                                     className="p-1 text-blue-600 hover:bg-blue-50 rounded transition-colors"
                                     title="Check Out"
                                   >
                                     <Clock className="h-4 w-4" />
                                   </button>
                                   <button 
-                                    onClick={() => markAttendance(worker.workerId, 'leave')}
+                                    onClick={() => markAttendance(worker.workerId, 'leave',worker.attendanceId)}
                                     className="p-1 text-yellow-600 hover:bg-yellow-50 rounded transition-colors"
                                     title="HALFDAY Leave"
                                   >

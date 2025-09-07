@@ -104,106 +104,106 @@ const Dashboard = () => {
       id: 'dashboard', 
       label: 'Dashboard', 
       icon: Home,
+      roles: ['ADMIN','MANAGER','SUPERVISOR'],
       subItems: [
-        { id: '', label: 'Overview', icon: Monitor },
-        { id: 'reports', label: 'Reports', icon: FileText },
+        { id: '', label: 'Overview', icon: Monitor, roles: ['ADMIN','MANAGER','SUPERVISOR'] },
+        { id: 'reports', label: 'Reports', icon: FileText, roles: ['ADMIN','MANAGER','SUPERVISOR'] },
       ]
     },
     { 
       id: 'production', 
       label: 'Production', 
       icon: Factory,
+      roles: ['ADMIN','MANAGER','SUPERVISOR'],
       subItems: [
-        { id: 'teaPlucking', label: 'Tea Plucking Records', icon: Leaf },
+        { id: 'teaPlucking', label: 'Tea Plucking Records', icon: Leaf ,roles: ['ADMIN','MANAGER','SUPERVISOR'] },
       ]
     },
     { 
       id: 'inventory', 
       label: 'Inventory', 
       icon: Package,
+      roles: ['ADMIN','MANAGER'],
       subItems: [
-        { id: 'inventory', label: 'Stock Levels', icon: BoxIcon },
-        { id: 'stockTransactions', label: 'Stock Transactions', icon: ListEnd }
+        { id: 'inventory', label: 'Stock Levels', icon: BoxIcon, roles: ['ADMIN','MANAGER']},
+        { id: 'stockTransactions', label: 'Stock Transactions', icon: ListEnd, roles: ['ADMIN','MANAGER'] }
       ]
     },
     { 
       id: 'solution', 
       label: 'Solutions', 
       icon: Lightbulb,
+      roles: ['ADMIN','SUPERVISOR'],
       subItems: [
-        { id: 'solution', label: 'AI Solutions', icon: Ratio},
+        { id: 'solution', label: 'AI Solutions', icon: Ratio, roles: ['ADMIN','SUPERVISOR']},
       ]
     },
     { 
       id: 'workers', 
       label: 'Workers', 
       icon: Users,
+      roles: ['ADMIN','MANAGER'],
       subItems: [
-        { id: 'workers', label: 'All Workers', icon: Users },
-        { id: 'teams', label: 'Teams', icon: UserPlus },
+        { id: 'workers', label: 'All Workers', icon: Users,roles: ['ADMIN','MANAGER'] },
+        { id: 'teams', label: 'Teams', icon: UserPlus,roles: ['ADMIN','MANAGER'] },
       ]
     },
     { 
       id: 'place', 
       label: 'Place', 
       icon: MapPinHouse,
+      roles: ['ADMIN'],
       subItems: [
-        { id: 'place', label: 'All Places', icon: Fence},
+        { id: 'place', label: 'All Places', icon: Fence,roles: ['ADMIN']},
       ]
     },
     { 
       id: 'tasks', 
       label: 'Tasks', 
       icon: ConciergeBell,
+      roles: ['ADMIN','MANAGER','SUPERVISOR'],
       subItems: [
-        { id: 'tasks', label: 'All Tasks', icon: ScrollText},
+        { id: 'tasks', label: 'All Tasks', icon: ScrollText, roles: ['ADMIN','MANAGER','SUPERVISOR']},
       ]
     },
     { 
       id: 'attendance', 
       label: 'Attendance', 
       icon: UserCheck,
+      roles: ['ADMIN','MANAGER','SUPERVISOR'],
       subItems: [
-        { id: 'attendance', label: 'Mark Attendance', icon: UserCheck},
+        { id: 'attendance', label: 'Mark Attendance', icon: UserCheck, roles: ['ADMIN','MANAGER','SUPERVISOR']},
       ]
     },
      { 
       id: 'payroll', 
       label: 'Payroll', 
       icon: DollarSign,
+      roles: ['ADMIN','MANAGER','SUPERVISOR'],
       subItems: [
-        { id: 'payroll', label: 'Payroll', icon: DollarSign},
-      ]
-    },
-    { 
-      id: 'distribution', 
-      label: 'Distribution', 
-      icon: Truck,
-      subItems: [
-        { id: 'vehicles', label: 'Vehicles', icon: Truck },
-        { id: 'tracking', label: 'Tracking', icon: MapPinIcon }
+        { id: 'payroll', label: 'Payroll', icon: DollarSign,roles: ['ADMIN','MANAGER','SUPERVISOR']},
       ]
     },
     { 
       id: 'settings', 
       label: 'Settings', 
       icon: Settings,
+      roles: ['ADMIN'],
       subItems: [
-        { id: 'profile', label: 'Profile', icon: UserCog },
+        { id: 'account', label: 'Accounts', icon: UserCog,roles: ['ADMIN'] },
       ]
     },
   ];
 
-  // Handle menu item click - close sidebar on mobile
+
   const handleMenuItemClick = (itemId) => {
     setActiveTab(itemId);
-    // Close sidebar on mobile when menu item is clicked
-    if (window.innerWidth < 1024) { // lg breakpoint
+
+    if (window.innerWidth < 1024) {
       setSidebarOpen(false);
     }
   };
 
-  // Toggle dropdown menu
   const toggleDropdown = (menuId) => {
     setExpandedMenus(prev => ({
       ...prev,
@@ -211,14 +211,20 @@ const Dashboard = () => {
     }));
   };
 
-  // Handle sub-item click
   const handleSubItemClick = (parentId, subItemId) => {
     setActiveTab(subItemId);
-    // Close sidebar on mobile when sub-item is clicked
     if (window.innerWidth < 1024) {
       setSidebarOpen(false);
     }
   };
+
+const filteredMenuItems = menuItems
+  .filter(item => item.roles?.includes(user?.role))
+  .map(item => ({
+    ...item,
+    subItems: item.subItems?.filter(sub => sub.roles?.includes(user?.role)) || []
+  }));
+
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
@@ -248,7 +254,7 @@ const Dashboard = () => {
         </div>
         
         <nav className={`mt-6 px-4 max-h-[calc(100vh-4rem)] ${sidebarExpanded ? 'overflow-y-auto' : 'overflow-hidden'}`}>
-          {menuItems.map((item) => {
+          {filteredMenuItems.map((item) => {
             const Icon = item.icon;
             const isExpanded = expandedMenus[item.id];
             const hasSubItems = item.subItems && item.subItems.length > 0;
@@ -371,20 +377,13 @@ const Dashboard = () => {
                   onClick={toggleUserDropdown}
                   className="h-8 w-8 bg-green-500 rounded-full flex items-center justify-center hover:bg-green-600 transition-colors duration-200"
                 >
-                  <span className="text-white text-sm font-medium">{user?.role?.substring(0, 1)}</span>
+                  <span className="text-white text-sm font-medium">{user?.firstName?.substring(0, 1)}</span>
                 </button>
                 
                 {/* Dropdown Menu */}
                 {userDropdownOpen && (
                   <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
                     <div className="py-1">
-                      <button
-                        onClick={handleProfileClick}
-                        className="w-full flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-200"
-                      >
-                        <User className="h-4 w-4 mr-2" />
-                        Profile
-                      </button>
                       <button
                         onClick={handleLogout}
                         className="w-full flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-200"
@@ -397,8 +396,9 @@ const Dashboard = () => {
                 )}
               </div>
               
-              <div className="h-8 w-10 flex items-center justify-center">
-                <span className="text-black text-sm font-medium">{user?.role}</span>
+              <div className="h-8 w-auto flex flex-col items-center justify-center">
+                <span className="text-black text-sm font-medium">{user?.firstName}</span>
+                <span className="text-gray-500 text-xs">{user?.role}</span>
               </div>
             </div>
           </div>
